@@ -1,3 +1,5 @@
+// src/registerServiceWorker.js
+
 const isLocalhost = Boolean(
     window.location.hostname === 'localhost' ||
     window.location.hostname === '[::1]' ||
@@ -5,22 +7,37 @@ const isLocalhost = Boolean(
 );
 
 export function register(config) {
-    if ('serviceWorker' in navigator) {
-        // Always try to register in production
-        if (process.env.NODE_ENV === 'production') {
-            registerValidSW(config);
-        } else if (isLocalhost) {
-            // For localhost, still register for testing
-            registerValidSW(config);
+    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+        // The URL constructor is available in all browsers that support SW.
+        const publicUrl = new URL(window.location.href);
+
+        // Only register if we're not on a different origin
+        if (publicUrl.origin !== window.location.origin) {
+            return;
         }
+
+        window.addEventListener('load', () => {
+            // Use absolute path for service worker
+            const swUrl = '/service-worker.js';
+
+            console.log('[Service Worker] Attempting to register from:', swUrl);
+
+            if (isLocalhost) {
+                // This is running on localhost. Check if a service worker still exists.
+                checkValidServiceWorker(swUrl, config);
+
+                navigator.serviceWorker.ready.then(() => {
+                    console.log('[Service Worker] This web app is being served cache-first by a service worker.');
+                });
+            } else {
+                // Is not localhost. Just register service worker
+                registerValidSW(swUrl, config);
+            }
+        });
     }
 }
 
-function registerValidSW(config) {
-    const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
-
-    console.log('[Service Worker] Registering with URL:', swUrl);
-
+function registerValidSW(swUrl, config) {
     navigator.serviceWorker
         .register(swUrl)
         .then((registration) => {
@@ -31,16 +48,19 @@ function registerValidSW(config) {
                 if (installingWorker == null) {
                     return;
                 }
-
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
+                            // New content is available
                             console.log('[Service Worker] New content is available; please refresh.');
+
                             if (config && config.onUpdate) {
                                 config.onUpdate(registration);
                             }
                         } else {
+                            // Content is cached
                             console.log('[Service Worker] Content is cached for offline use.');
+
                             if (config && config.onSuccess) {
                                 config.onSuccess(registration);
                             }
@@ -48,21 +68,40 @@ function registerValidSW(config) {
                     }
                 };
             };
-
-            // Listen for messages from service worker
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data && event.data.type === 'APP_INSTALLED') {
-                    console.log('[Service Worker] App installed message received');
-                    // You can trigger a UI update here
-                }
-            });
         })
         .catch((error) => {
             console.error('[Service Worker] Registration failed:', error);
-            // Don't throw error, just log it
             if (config && config.onError) {
                 config.onError(error);
             }
+        });
+}
+
+function checkValidServiceWorker(swUrl, config) {
+    // Check if the service worker can be found. If it can't reload the page.
+    fetch(swUrl, {
+        headers: { 'Service-Worker': 'script' },
+    })
+        .then((response) => {
+            // Ensure service worker exists, and that we really are getting a JS file.
+            const contentType = response.headers.get('content-type');
+            if (
+                response.status === 404 ||
+                (contentType != null && contentType.indexOf('javascript') === -1)
+            ) {
+                // No service worker found. Probably a different app. Reload the page.
+                navigator.serviceWorker.ready.then((registration) => {
+                    registration.unregister().then(() => {
+                        window.location.reload();
+                    });
+                });
+            } else {
+                // Service worker found. Proceed as normal.
+                registerValidSW(swUrl, config);
+            }
+        })
+        .catch(() => {
+            console.log('[Service Worker] No internet connection found. App is running in offline mode.');
         });
 }
 
@@ -76,30 +115,4 @@ export function unregister() {
                 console.error(error.message);
             });
     }
-}
-
-// Helper function to check if PWA is installable
-export function isPwaInstallable() {
-    return 'serviceWorker' in navigator && window.matchMedia('(display-mode: standalone)').matches === false;
-}
-
-// Helper to trigger install prompt
-export function triggerInstallPrompt() {
-    return new Promise((resolve, reject) => {
-        if (window.deferredPrompt) {
-            window.deferredPrompt.prompt();
-            window.deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                    resolve(true);
-                } else {
-                    console.log('User dismissed the install prompt');
-                    resolve(false);
-                }
-                window.deferredPrompt = null;
-            });
-        } else {
-            resolve(false);
-        }
-    });
 }

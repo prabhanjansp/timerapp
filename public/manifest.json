@@ -1,6 +1,6 @@
 {
   "short_name": "FocusFlow",
-  "name": "FocusFlow - Productivity Timer & Analytics",
+  "name": "FocusFlow - Productivity Timer",
   "description": "Boost your productivity with smart timer, analytics, and goal tracking",
   "icons": [
     {
@@ -14,12 +14,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/logo512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ],
   "start_url": "/",
@@ -29,29 +23,6 @@
   "theme_color": "#3B82F6",
   "orientation": "portrait-primary",
   "categories": ["productivity", "utilities", "education"],
-  "shortcuts": [
-    {
-      "name": "Start Timer",
-      "short_name": "Timer",
-      "description": "Start a new focus session",
-      "url": "/timer",
-      "icons": [{ "src": "/timer-icon.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "View Analytics",
-      "short_name": "Analytics",
-      "description": "Check your productivity insights",
-      "url": "/analytics",
-      "icons": [{ "src": "/analytics-icon.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot1.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "platform": "wide",
-      "label": "FocusFlow Dashboard"
-    }
-  ]
+  "screenshots": [],
+  "shortcuts": []
 }

@@ -15,15 +15,4 @@ root.render(
 );
 
 // Register service worker
-serviceWorkerRegistration.register({
-  onSuccess: (registration) => {
-    console.log('Service worker registered successfully:', registration);
-  },
-  onUpdate: (registration) => {
-    console.log('Service worker updated:', registration);
-    // You can show an update notification here
-  },
-  onError: (error) => {
-    console.error('Service worker registration failed:', error);
-  }
-});
+serviceWorkerRegistration.register();
