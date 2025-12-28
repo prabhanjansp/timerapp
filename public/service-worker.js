@@ -1,131 +1,97 @@
-const CACHE_NAME = 'timer-app-v2';
+// service-worker.js
+const CACHE_NAME = 'focusflow-v1';
 const urlsToCache = [
     '/',
     '/index.html',
+    '/static/js/bundle.js',
+    '/static/css/main.css',
     '/manifest.json',
-    '/icon-192.png',
-    '/icon-512.png',
-    '/sounds/complete.mp3'
+    '/favicon.ico',
+    '/logo192.png',
+    '/logo512.png'
 ];
 
 // Install event
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
+    console.log('[Service Worker] Installing Service Worker...');
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Opened cache');
+            .then((cache) => {
+                console.log('[Service Worker] Caching app shell');
                 return cache.addAll(urlsToCache);
             })
     );
 });
 
 // Activate event
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
+    console.log('[Service Worker] Activating Service Worker...');
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
+        caches.keys().then((keyList) => {
+            return Promise.all(keyList.map((key) => {
+                if (key !== CACHE_NAME) {
+                    console.log('[Service Worker] Removing old cache:', key);
+                    return caches.delete(key);
+                }
+            }));
         })
     );
+    return self.clients.claim();
 });
 
 // Fetch event
-self.addEventListener('fetch', event => {
-    // Skip non-GET requests
-    if (event.request.method !== 'GET') return;
-
-    // Skip Chrome extensions
-    if (event.request.url.startsWith('chrome-extension://')) return;
+self.addEventListener('fetch', (event) => {
+    // Skip cross-origin requests
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
 
     event.respondWith(
         caches.match(event.request)
-            .then(response => {
-                // Cache hit - return response
+            .then((response) => {
                 if (response) {
                     return response;
                 }
 
-                // Clone the request
+                // Clone the request because it's a one-time use stream
                 const fetchRequest = event.request.clone();
 
-                return fetch(fetchRequest).then(response => {
+                return fetch(fetchRequest).then((response) => {
                     // Check if we received a valid response
                     if (!response || response.status !== 200 || response.type !== 'basic') {
                         return response;
                     }
 
-                    // Clone the response
+                    // Clone the response because it's a one-time use stream
                     const responseToCache = response.clone();
 
                     caches.open(CACHE_NAME)
-                        .then(cache => {
+                        .then((cache) => {
                             cache.put(event.request, responseToCache);
                         });
 
                     return response;
+                }).catch(() => {
+                    // If fetch fails and we're offline, you could return a custom offline page
+                    // For now, we'll just let it fail
+                    console.log('[Service Worker] Fetch failed; returning offline page later.');
                 });
             })
-            .catch(() => {
-                // If both cache and network fail, show offline page
-                if (event.request.headers.get('accept').includes('text/html')) {
-                    return caches.match('/offline.html');
-                }
-            })
     );
 });
 
-// Push notification event
-self.addEventListener('push', event => {
-    const data = event.data ? event.data.json() : {};
-
-    const options = {
-        body: data.body || 'Timer notification',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1
-        }
-    };
-
+// Handle app installation
+self.addEventListener('appinstalled', (event) => {
+    console.log('[Service Worker] App was installed successfully!');
+    // Clear the deferredPrompt variable
     event.waitUntil(
-        self.registration.showNotification(data.title || 'Timer App', options)
-    );
-});
-
-// Notification click event
-self.addEventListener('notificationclick', event => {
-    event.notification.close();
-
-    event.waitUntil(
-        clients.matchAll({ type: 'window' }).then(clientList => {
-            for (const client of clientList) {
-                if (client.url === '/' && 'focus' in client) {
-                    return client.focus();
-                }
-            }
-            if (clients.openWindow) {
-                return clients.openWindow('/');
-            }
+        self.clients.matchAll().then((clients) => {
+            clients.forEach((client) => {
+                client.postMessage({
+                    type: 'APP_INSTALLED',
+                    timestamp: new Date().toISOString()
+                });
+            });
         })
     );
 });
-
-// Sync event for background sync
-self.addEventListener('sync', event => {
-    if (event.tag === 'sync-sessions') {
-        event.waitUntil(syncSessions());
-    }
-});
-
-async function syncSessions() {
-    // This is where you would sync offline data with server
-    console.log('Syncing sessions...');
-}

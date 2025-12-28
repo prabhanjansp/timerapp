@@ -5,45 +5,42 @@ const isLocalhost = Boolean(
 );
 
 export function register(config) {
-    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
-        const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
-        if (publicUrl.origin !== window.location.origin) {
-            return;
+    if ('serviceWorker' in navigator) {
+        // Always try to register in production
+        if (process.env.NODE_ENV === 'production') {
+            registerValidSW(config);
+        } else if (isLocalhost) {
+            // For localhost, still register for testing
+            registerValidSW(config);
         }
-
-        window.addEventListener('load', () => {
-            const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
-
-            if (isLocalhost) {
-                checkValidServiceWorker(swUrl, config);
-                navigator.serviceWorker.ready.then(() => {
-                    console.log('This web app is being served cache-first by a service worker.');
-                });
-            } else {
-                registerValidSW(swUrl, config);
-            }
-        });
     }
 }
 
-function registerValidSW(swUrl, config) {
+function registerValidSW(config) {
+    const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+
+    console.log('[Service Worker] Registering with URL:', swUrl);
+
     navigator.serviceWorker
         .register(swUrl)
         .then((registration) => {
+            console.log('[Service Worker] Registration successful with scope:', registration.scope);
+
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker == null) {
                     return;
                 }
+
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
-                            console.log('New content is available; please refresh.');
+                            console.log('[Service Worker] New content is available; please refresh.');
                             if (config && config.onUpdate) {
                                 config.onUpdate(registration);
                             }
                         } else {
-                            console.log('Content is cached for offline use.');
+                            console.log('[Service Worker] Content is cached for offline use.');
                             if (config && config.onSuccess) {
                                 config.onSuccess(registration);
                             }
@@ -51,33 +48,21 @@ function registerValidSW(swUrl, config) {
                     }
                 };
             };
+
+            // Listen for messages from service worker
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'APP_INSTALLED') {
+                    console.log('[Service Worker] App installed message received');
+                    // You can trigger a UI update here
+                }
+            });
         })
         .catch((error) => {
-            console.error('Error during service worker registration:', error);
-        });
-}
-
-function checkValidServiceWorker(swUrl, config) {
-    fetch(swUrl, {
-        headers: { 'Service-Worker': 'script' },
-    })
-        .then((response) => {
-            const contentType = response.headers.get('content-type');
-            if (
-                response.status === 404 ||
-                (contentType != null && contentType.indexOf('javascript') === -1)
-            ) {
-                navigator.serviceWorker.ready.then((registration) => {
-                    registration.unregister().then(() => {
-                        window.location.reload();
-                    });
-                });
-            } else {
-                registerValidSW(swUrl, config);
+            console.error('[Service Worker] Registration failed:', error);
+            // Don't throw error, just log it
+            if (config && config.onError) {
+                config.onError(error);
             }
-        })
-        .catch(() => {
-            console.log('No internet connection found. App is running in offline mode.');
         });
 }
 
@@ -91,4 +76,30 @@ export function unregister() {
                 console.error(error.message);
             });
     }
+}
+
+// Helper function to check if PWA is installable
+export function isPwaInstallable() {
+    return 'serviceWorker' in navigator && window.matchMedia('(display-mode: standalone)').matches === false;
+}
+
+// Helper to trigger install prompt
+export function triggerInstallPrompt() {
+    return new Promise((resolve, reject) => {
+        if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            window.deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                    resolve(true);
+                } else {
+                    console.log('User dismissed the install prompt');
+                    resolve(false);
+                }
+                window.deferredPrompt = null;
+            });
+        } else {
+            resolve(false);
+        }
+    });
 }

@@ -18,7 +18,11 @@ import {
   Moon,
   Sun,
   Download,
-  Coffee
+  Coffee,
+  X,
+  Smartphone,
+  Globe,
+  Monitor
 } from 'lucide-react';
 import { useThemeStore } from '../store/themeStore';
 
@@ -31,6 +35,147 @@ const LandingPage = () => {
     satisfaction: 98,
     rating: 4.9
   });
+
+  // PWA Installation State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+  const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);
+  const [userAgent, setUserAgent] = useState('');
+
+  useEffect(() => {
+    // Get user agent for browser-specific instructions
+    setUserAgent(navigator.userAgent);
+
+    // Check if app is already installed
+    const checkIfInstalled = () => {
+      const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+      setIsAlreadyInstalled(isInstalled);
+      console.log('[PWA] App already installed?', isInstalled);
+
+      // Also check for other indicators
+      if (window.navigator.standalone) {
+        setIsAlreadyInstalled(true);
+      }
+    };
+
+    checkIfInstalled();
+
+    // Listen for beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e) => {
+      console.log('[PWA] beforeinstallprompt event fired');
+      // Prevent Chrome 76+ from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+
+      // Log for debugging
+      console.log('[PWA] App is installable, deferredPrompt saved');
+    };
+
+    // Listen for appinstalled event
+    const handleAppInstalled = (e) => {
+      console.log('[PWA] App was installed via appinstalled event');
+      setIsInstallable(false);
+      setIsAlreadyInstalled(true);
+      setDeferredPrompt(null);
+      setShowInstallInstructions(false);
+
+      // Show success message
+      setTimeout(() => {
+        alert('🎉 FocusFlow has been successfully installed! You can now find it in your apps.');
+      }, 500);
+    };
+
+    // Listen for changes in display mode
+    const handleDisplayModeChange = (e) => {
+      console.log('[PWA] Display mode changed:', e.matches ? 'standalone' : 'browser');
+      setIsAlreadyInstalled(e.matches);
+    };
+
+    const standaloneMediaQuery = window.matchMedia('(display-mode: standalone)');
+    standaloneMediaQuery.addListener(handleDisplayModeChange);
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Check initially
+    checkIfInstalled();
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      standaloneMediaQuery.removeListener(handleDisplayModeChange);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    console.log('[PWA] Install button clicked');
+    console.log('[PWA] deferredPrompt available?', deferredPrompt !== null);
+    console.log('[PWA] isAlreadyInstalled?', isAlreadyInstalled);
+
+    if (isAlreadyInstalled) {
+      alert('✅ FocusFlow is already installed on your device!');
+      return;
+    }
+
+    if (deferredPrompt) {
+      console.log('[PWA] Showing install prompt');
+
+      try {
+        // Show the install prompt
+        deferredPrompt.prompt();
+
+        // Wait for the user to respond to the prompt
+        const choiceResult = await deferredPrompt.userChoice;
+        console.log(`[PWA] User choice result:`, choiceResult);
+
+        if (choiceResult.outcome === 'accepted') {
+          console.log('[PWA] User accepted the install prompt');
+          setIsInstallable(false);
+          setIsAlreadyInstalled(true);
+          setShowInstallInstructions(false);
+
+          // Clear the deferredPrompt
+          setDeferredPrompt(null);
+        } else {
+          console.log('[PWA] User dismissed the install prompt');
+          // Keep the deferredPrompt for later use
+          // Show instructions as fallback
+          setShowInstallInstructions(true);
+        }
+      } catch (error) {
+        console.error('[PWA] Error during installation:', error);
+        // Fallback to instructions
+        setShowInstallInstructions(true);
+      }
+    } else {
+      console.log('[PWA] No deferred prompt available, showing instructions');
+      // If PWA installation is not available, show instructions
+      setShowInstallInstructions(true);
+    }
+  };
+
+  const checkInstallCapability = () => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const hasPrompt = deferredPrompt !== null;
+    const canInstall = hasPrompt && !isStandalone;
+
+    return canInstall;
+  };
+
+  // Determine user's browser for instructions
+  const getBrowserInfo = () => {
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('chrome') && !ua.includes('edg')) return { name: 'Chrome', icon: <Monitor className="w-5 h-5" /> };
+    if (ua.includes('safari') && !ua.includes('chrome')) return { name: 'Safari', icon: <Globe className="w-5 h-5" /> };
+    if (ua.includes('firefox')) return { name: 'Firefox', icon: <Globe className="w-5 h-5" /> };
+    if (ua.includes('edg')) return { name: 'Edge', icon: <Monitor className="w-5 h-5" /> };
+    return { name: 'Browser', icon: <Smartphone className="w-5 h-5" /> };
+  };
+
+  const browserInfo = getBrowserInfo();
 
   useEffect(() => {
     // Animate stats counting up
@@ -140,6 +285,188 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* PWA Installation Instructions Modal */}
+      {showInstallInstructions && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-700"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
+                  <Download className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                  Install FocusFlow
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowInstallInstructions(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <Sparkles className="w-5 h-5 text-blue-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  For the best experience, install FocusFlow as an app!
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  {browserInfo.icon}
+                  <span className="font-medium text-gray-800 dark:text-white">
+                    Using {browserInfo.name}?
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Chrome/Edge Instructions */}
+                  {(browserInfo.name === 'Chrome' || browserInfo.name === 'Edge') && (
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">1</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            Look for the <span className="font-semibold text-blue-600 dark:text-blue-400">install icon</span> in your address bar:
+                          </p>
+                          <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-center">
+                            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-blue-500 text-white rounded-lg">
+                              <Download size={14} />
+                              <span className="text-sm">Install</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">2</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          Or click the <span className="font-semibold">three dots menu</span> → <span className="font-semibold">"Install FocusFlow"</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Safari Instructions */}
+                  {browserInfo.name === 'Safari' && (
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">1</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            Tap the <span className="font-semibold text-blue-600 dark:text-blue-400">Share button</span> (📤) at the bottom
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">2</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          Scroll and select <span className="font-semibold">"Add to Home Screen"</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Firefox Instructions */}
+                  {browserInfo.name === 'Firefox' && (
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">1</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            Click the <span className="font-semibold text-blue-600 dark:text-blue-400">three lines menu</span> in the top right
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">2</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          Select <span className="font-semibold">"Install"</span> or look for the install button in the address bar
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Generic Instructions */}
+                  {!['Chrome', 'Edge', 'Safari', 'Firefox'].includes(browserInfo.name) && (
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">1</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          Look for an <span className="font-semibold">install button</span> in your browser's address bar or menu
+                        </p>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-300">2</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          Check your browser's menu for <span className="font-semibold">"Add to Home Screen"</span> or <span className="font-semibold">"Install App"</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <CheckCircle className="inline w-4 h-4 text-green-500 mr-2" />
+                    Once installed, FocusFlow works offline and feels like a native app!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowInstallInstructions(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-300 dark:border-gray-600 
+                         text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700
+                         transition-colors font-medium"
+              >
+                Maybe Later
+              </button>
+              {deferredPrompt && !isAlreadyInstalled && (
+                <button
+                  onClick={handleInstallClick}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 
+                           text-white font-semibold hover:shadow-lg hover:shadow-purple-500/25
+                           transition-all flex items-center justify-center space-x-2"
+                >
+                  <Download size={18} />
+                  <span>Install Now</span>
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -184,15 +511,45 @@ const LandingPage = () => {
           </motion.div>
 
           <div className="flex items-center space-x-4">
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="p-3 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm 
+                       border border-gray-200/50 dark:border-gray-700/50
+                       hover:border-blue-500/50 transition-all duration-300"
             >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              )}
             </button>
+
+            {/* Install Button in Navbar (only show if installable) */}
+            {checkInstallCapability() && !isAlreadyInstalled && (
+              <motion.button
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                onClick={handleInstallClick}
+                className="group relative px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 
+                         text-white font-semibold rounded-lg overflow-hidden transition-all 
+                         duration-300 hover:shadow-lg hover:shadow-green-500/25 flex items-center space-x-2"
+              >
+                <Download size={16} className="group-hover:animate-bounce" />
+                <span>Install App</span>
+                <motion.span
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
+                />
+              </motion.button>
+            )}
+
             <Link
               to="/timer"
-              className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/25"
+              className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 
+                       text-white font-semibold rounded-xl overflow-hidden transition-all 
+                       duration-300 hover:shadow-xl hover:shadow-blue-500/25"
             >
               <span className="relative z-10 flex items-center space-x-2">
                 <Zap size={18} className="group-hover:rotate-12 transition-transform" />
@@ -277,18 +634,36 @@ const LandingPage = () => {
                 <span>Explore Features</span>
               </Link>
 
-              <button className="px-6 py-4 text-lg bg-transparent text-gray-600 dark:text-gray-400 
-                               rounded-xl border-2 border-dashed border-gray-300/50 dark:border-gray-600/50
-                               hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400
-                               transition-all duration-300 flex items-center space-x-3 group">
-                <Download className="w-6 h-6" />
-                <span>Install App</span>
+              <button
+                onClick={handleInstallClick}
+                className="group relative px-6 py-4 text-lg bg-transparent text-gray-600 dark:text-gray-400 
+                         rounded-xl border-2 border-dashed border-gray-300/50 dark:border-gray-600/50
+                         hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400
+                         hover:bg-white/50 dark:hover:bg-gray-800/50
+                         transition-all duration-300 flex items-center space-x-3"
+              >
+                <Download className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span>
+                  {isAlreadyInstalled ? 'App Installed ✓' : 'Install App'}
+                </span>
+                {checkInstallCapability() && !isAlreadyInstalled && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white"
+                  />
+                )}
               </button>
             </div>
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-6">
               <CheckCircle className="inline w-4 h-4 mr-2 text-green-500" />
               Completely free • No credit card required • Start instantly
+              {checkInstallCapability() && !isAlreadyInstalled && (
+                <span className="ml-2 text-blue-500 font-medium">
+                  • Install available!
+                </span>
+              )}
             </p>
           </motion.div>
 
@@ -481,12 +856,25 @@ const LandingPage = () => {
                     <span>Start Your First Session</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                   </Link>
-                  <button className="px-8 py-4 text-lg bg-transparent text-gray-700 dark:text-gray-300 
-                                   rounded-xl border-2 border-gray-300/50 dark:border-gray-600/50
-                                   hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400
-                                   transition-all duration-300 flex items-center justify-center space-x-3">
-                    <Download className="w-5 h-5" />
-                    <span>Install App</span>
+                  <button
+                    onClick={handleInstallClick}
+                    className="group px-8 py-4 text-lg bg-transparent text-gray-700 dark:text-gray-300 
+                             rounded-xl border-2 border-gray-300/50 dark:border-gray-600/50
+                             hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400
+                             hover:bg-white/50 dark:hover:bg-gray-800/50
+                             transition-all duration-300 flex items-center justify-center space-x-3"
+                  >
+                    <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <span>
+                      {isAlreadyInstalled ? 'App Installed ✓' : 'Install App'}
+                    </span>
+                    {checkInstallCapability() && !isAlreadyInstalled && (
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="w-2 h-2 bg-blue-500 rounded-full ml-2"
+                      />
+                    )}
                   </button>
                 </div>
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -531,6 +919,16 @@ const LandingPage = () => {
               <p className="text-gray-600 dark:text-gray-400 max-w-sm">
                 Master your time, amplify your focus. Built with ❤️ for productive people. Completely free.
               </p>
+              <div className="mt-3">
+                <button
+                  onClick={handleInstallClick}
+                  className="inline-flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 
+                           hover:text-blue-700 dark:hover:text-blue-300"
+                >
+                  <Download size={14} />
+                  <span>Install as PWA</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -586,6 +984,11 @@ const LandingPage = () => {
             <p>
               FocusFlow is open-source software licensed under MIT.
               Made with coffee ☕ and good vibes. Always free, forever.
+            </p>
+            <p className="mt-2 flex items-center justify-center space-x-1">
+              <Sparkles size={12} />
+              <span>PWA supported - Install for offline use and native app experience</span>
+              <Sparkles size={12} />
             </p>
           </div>
         </div>
