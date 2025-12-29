@@ -1,16 +1,143 @@
-# React + Vite
+# ⌚ FocusFlow - React Progressive Web App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Project Screenshot](./public/time.png) 
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌟 Project Description
+Boost productivity with ChronoLogic, an intelligent timer supporting Pomodoro, custom intervals, and auto-breaks. Track goals, streaks, and progress with visual analytics and AI-powered insights. Enjoy offline PWA support with push notifications and full privacy. Perfect for maintaining focus and building consistent work habits
 
-## React Compiler
+## 🚀 Live Demo
+You can check out the live version of the project [here](https://timerapp-snowy.vercel.app/).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
+## ✨ Key Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🎥 Media Discovery
+- 🏠 Smart Timer
+- 🔍 Streak System
+- 📺 PWA Support
+
+### 🛠 Interactive Features
+- 💾 Analytics Dashboard with localStorage persistence
+- 🌓 Light/Dark mode toggle
+- 📱 Fully responsive design
+- ⚡ Smooth animations with Framer Motion
+- 🎡 Session History
+- 📊 Progress Insights
+- 🥅 Goal Tracking
+
+
+### 🛡 Technical Features
+- ⏳ Loading skeletons for better UX
+- 📦 Lazy-loaded components
+- 🏷 SEO optimization with React Helmet
+
+## 🛠 Tech Stack
+
+| Category        | Technology                          |
+|-----------------|-------------------------------------|
+| Frontend        | React.js (Vite)                     |
+| State Management| Zustand                           |
+| Styling         | Tailwind css                        |
+| Routing         | React Router DOM                    |
+| Animation       | Framer Motion                       |
+| Icons           | React Icons                         |
+
+## 📁 Project Structure
+movie-explorer/
+├── public/
+│ └── (static assets)
+├── src/
+│ ├── assets/ 
+│ ├── components/ 
+│ │ ├── Analytics/
+│ │ ├── ConfirmationModel/ 
+│ │ ├── DailyGoals/ 
+│ │ ├── ErrorBoundary/ 
+│ │ ├── LoadingSpinner/ 
+│ │ ├── QuickStart/ 
+│ │ ├── RecentSessions/ 
+│ │ ├── SessionList/ 
+│ │ ├── StatsCard/ 
+│ │ ├── StreakCount/ 
+│ │ ├── ThemeToggle/ 
+│ │ ├── Timer/ 
+│ │ ├── TimerCounter/ 
+│ │ ├── TimerDisplay/ 
+│ │ └── TimerForm/
+| | 
+│ ├── contexts/ 
+│ ├── hooks/ 
+│ ├── pages/ 
+│ │ ├── AnalyticsPage/ 
+│ │ ├── GoalsPage/ 
+│ │ ├── LandingPAge/ 
+│ │ ├── HistoryPage/ 
+│ │ ├── SettingsPage/ 
+│ │ ├── TimerPage/ 
+│ │ 
+│ ├── services/
+│ ├── styles/ 
+│ ├── utils/ 
+│ ├── App.jsx 
+│ └── main.jsx 
+├── serviceWorkerRegistration 
+├── package.json 
+└── README.md 
+
+
+## 🏁 Getting Started
+
+### Prerequisites
+- Node.js (v14+)
+- npm (v6+) or yarn
+
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/prabhanjansp/timerapp
+   cd movie-explorer
+Install dependencies:
+
+bash
+npm install
+# or
+yarn install
+
+
+Run the development server:
+
+bash
+npm run dev
+# or
+yarn dev
+🧪 Testing
+Run tests with:
+
+bash
+npm test
+# or
+yarn test
+🚀 Deployment
+Build for production:
+
+bash
+npm run build
+# or
+yarn build
+Deploy the dist folder to your preferred hosting service.
+
+📝 License
+This project is licensed under the MIT License - see the LICENSE.md file for details.
+
+🙏 Acknowledgments
+
+Tailwind for awesome React components
+
+Vite team for the blazing fast build tool
+
+📬 Contact
+For questions or feedback, please contact Prabhanjan at puranikchetan97@gmail.com
+
+Made with ❤️ by Prabhanjan
